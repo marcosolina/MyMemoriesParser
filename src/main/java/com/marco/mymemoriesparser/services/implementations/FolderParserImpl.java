@@ -223,7 +223,7 @@ public class FolderParserImpl implements FolderParserInterface {
             try {
                 return DateUtils.fromStringToLocalDateTime(name, dateFormats);
             } catch (Exception e) {
-            	logger.error(String.format(TRACE_ERROR_DATE_FORMATE, name, dateFormats.getFormat()));
+            	logger.trace(String.format(TRACE_ERROR_DATE_FORMATE, name, dateFormats.getFormat()));
             }
         }
 
