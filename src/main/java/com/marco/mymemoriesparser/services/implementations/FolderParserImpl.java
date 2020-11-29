@@ -38,6 +38,7 @@ public class FolderParserImpl implements FolderParserInterface {
     private Logger logger = Logger.getLogger(FolderParserImpl.class);
     private int thumbnailHeight = Integer.parseInt(MyMemoriesUtils.getProperty("com.marco.mymemoriesparser.thumbnail.px.height"));
     private int thumbnailWidth = Integer.parseInt(MyMemoriesUtils.getProperty("com.marco.mymemoriesparser.thumbnail.px.width"));
+    private static final String TRACE_ERROR_DATE_FORMATE = "Tried to parse date time: %s into %s";
 
     private ExifDataManager edm;
 
@@ -49,8 +50,8 @@ public class FolderParserImpl implements FolderParserInterface {
             System.exit(2);
             return;
         }
-
-        edm = new ExifDataManagerFactory().setExifToolPath(Path.of(exifFullPath)).getExifDataManager();
+        
+        edm = new ExifDataManagerFactory().setExifToolPath(Paths.get(exifFullPath)).getExifDataManager();
     }
 
     private String getFolderToScann() throws MarcoException {
@@ -115,21 +116,6 @@ public class FolderParserImpl implements FolderParserInterface {
                     logger.trace(String.format("Files remaining: %s", count.decrementAndGet()));
                 }
             });
-
-            /*
-             * int count = result.size(); logger.info(String.format("Files to process: %s",
-             * count)); while (!result.isEmpty()) { File file = result.remove(0);
-             * 
-             * PicturesDao dao = new PicturesDao(); dao.setFile_name("PROCESSING");
-             * dao.setFull_path(file.getAbsolutePath()); dao.updateInsert(cn);
-             * 
-             * try { fillTheData(dao, file, tagsToRead); dao.updateInsert(cn); } catch
-             * (Exception ee) { logger.error("Error with the picture: " + file.getName());
-             * dao.setFile_name("ERROR"); dao.setThumbnail(ee.getMessage());
-             * dao.updateInsert(cn); }
-             * 
-             * logger.info(String.format("Files remaining: %s", --count)); }
-             */
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -222,6 +208,7 @@ public class FolderParserImpl implements FolderParserInterface {
             try {
                 return DateUtils.fromStringToLocalDateTime(name, dateFormats);
             } catch (Exception e) {
+            	logger.trace(String.format(TRACE_ERROR_DATE_FORMATE, name, dateFormats.getFormat()));
             }
         }
 
@@ -236,6 +223,7 @@ public class FolderParserImpl implements FolderParserInterface {
             try {
                 return DateUtils.fromStringToLocalDateTime(name, dateFormats);
             } catch (Exception e) {
+            	logger.error(String.format(TRACE_ERROR_DATE_FORMATE, name, dateFormats.getFormat()));
             }
         }
 
@@ -250,6 +238,7 @@ public class FolderParserImpl implements FolderParserInterface {
             try {
                 return DateUtils.fromStringToLocalDateTime(name, dateFormats);
             } catch (Exception e) {
+            	logger.trace(String.format(TRACE_ERROR_DATE_FORMATE, name, dateFormats.getFormat()));
             }
         }
         
@@ -264,6 +253,7 @@ public class FolderParserImpl implements FolderParserInterface {
             try {
                 return DateUtils.fromStringToLocalDateTime(name, dateFormats);
             } catch (Exception e) {
+            	logger.trace(String.format(TRACE_ERROR_DATE_FORMATE, name, dateFormats.getFormat()));
             }
         }
 
@@ -343,7 +333,7 @@ public class FolderParserImpl implements FolderParserInterface {
 
         try (Stream<Path> walk = Files.walk(Paths.get(folderToScan))) {
 
-            List<File> result = walk.filter(Files::isRegularFile).map(x -> x.toFile()).collect(Collectors.toList());
+            List<File> result = walk.filter(Files::isRegularFile).map(Path::toFile).collect(Collectors.toList());
 
             List<ExifTags> tagsToRead = new ArrayList<>();
             tagsToRead.add(ExifTags.DATE_DATE_TIME_ORIGINAL);
@@ -374,8 +364,8 @@ public class FolderParserImpl implements FolderParserInterface {
 
     @Override
     public String generateBase64Thumbnail(PicturesDao pictureDao) throws MarcoException {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try {
+        
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream()) {
             File file = new File(pictureDao.getFull_path());
             if (!file.exists()) {
                 throw new MarcoException("The file does not exist enymore...");
@@ -389,21 +379,13 @@ public class FolderParserImpl implements FolderParserInterface {
         } catch (IOException e) {
             e.printStackTrace();
             throw new MarcoException(e);
-        } finally {
-            if (bos != null) {
-                try {
-                    bos.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        } 
         return "";
     }
 
 	@Override
 	public void setDateFromFileName() throws MarcoException {
-		try (Stream<Path> walk = Files.walk(Path.of(getFolderToScann()))) {
+		try (Stream<Path> walk = Files.walk(Paths.get(getFolderToScann()))) {
 			List<File> result = walk.filter(Files::isRegularFile).map(Path::toFile).collect(Collectors.toList());
 			result.parallelStream().forEach(f -> {
 				LocalDateTime ldt = calculateDateTimeFromFileName(f);
