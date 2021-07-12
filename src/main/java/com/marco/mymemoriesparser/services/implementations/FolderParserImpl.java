@@ -94,6 +94,7 @@ public class FolderParserImpl implements FolderParserInterface {
 
             result.parallelStream().forEach(f -> {
                 try {
+                    logger.trace(String.format("Processing: %s", f.getAbsolutePath()));
                     PicturesDao dao = new PicturesDao();
                     dao.setFile_name("PROCESSING");
                     dao.setFull_path(f.getAbsolutePath());
@@ -178,11 +179,17 @@ public class FolderParserImpl implements FolderParserInterface {
         name = name.replace("VID_", "");
         name = name.replace("PANO_", "");
         name = name.replace("_Richtone(HDR)", "");
+        /*
         for (int i = 0; i < 1000; i++) {
             String formatted = String.format("_%05d", i);
-            name = name.replaceAll(formatted, "");
+            if(name.endsWith(formatted)) {
+                name = name.replaceAll(formatted, "");
+            }
         }
+        */
 
+        logger.trace(String.format("Parsing File Name: %s", name));
+        
         /*
          * Formats to try to parse
          */
